@@ -39,3 +39,29 @@ on N1.SCHEMA_NAME=M1.SCHEMA_NAME COLLATE Latin1_General_CS_AS where M1.SCHEMA_NA
 select N1.SCHEMA_NAME, M1.SCHEMA_NAME from AdventureWorks2014.INFORMATION_SCHEMA.SCHEMATA  N1
 right join AdventureWorks.INFORMATION_SCHEMA.SCHEMATA  M1
 on N1.SCHEMA_NAME=M1.SCHEMA_NAME COLLATE Latin1_General_CS_AS where N1.SCHEMA_NAME is null;
+
+-- IMPORTANTE!!!!!
+-- query que devuelve que tablas estan y no estan en la base de datos origen por medio de un print
+declare @schemaName nvarchar(50)
+declare @tableName nvarchar(50)
+
+declare cursor1 cursor for
+select TABLE_SCHEMA, TABLE_NAME from AdventureWorks2014.INFORMATION_SCHEMA.TABLES
+ order by TABLE_SCHEMA,TABLE_NAME
+
+open cursor1
+
+fetch next from cursor1 into @schemaName,@tableName
+while @@FETCH_STATUS=0
+begin
+if exists (select TABLE_SCHEMA, TABLE_NAME from AdventureWorks.INFORMATION_SCHEMA.TABLES 
+where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName)
+print 'coincidencia' /* @schemaName+' '+@tableName+' se encuentra en las dos tablas'*/
+else
+print @schemaName+' '+@tableName+' no se encuentra en la tabla destino'
+fetch next from cursor1 into @schemaName,@tableName
+
+end
+
+close cursor1
+deallocate cursor1
