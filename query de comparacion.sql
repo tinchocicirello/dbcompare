@@ -65,3 +65,100 @@ end
 
 close cursor1
 deallocate cursor1
+
+--IMPORTANTE!!!!!
+--Query de comparacion, ahora devuelve las coincidencias en columnas si la tabla coincide en nombre
+--Poner entre /*--*/ la query anterior para no generar errores
+
+create database ejemplo1
+use ejemplo1 
+
+create table tabla1(
+columna1 int,
+columna2 varchar(50),
+columna3 date
+)
+
+create table tabla2(
+columna1 int,
+columna2 varchar(50),
+columna3 date
+)
+
+create table tabla3(
+columna1 int,
+columna2 varchar(50),
+columna3 date
+)
+
+create database ejemplo2
+use ejemplo2 
+
+create table tabla1(
+columna1 int,
+columna2 varchar(50),
+columna3 date
+)
+
+create table tabla2(
+columna1 int,
+columna2 int,
+columna3 int
+)
+
+create table tabla4(
+columna1 int,
+columna2 varchar(50),
+columna3 date
+)
+
+use master
+
+declare @schemaName nvarchar(50)
+declare @tableName nvarchar(50)
+declare @columnName nvarchar(50)
+declare @typeName nvarchar(50)
+
+declare cursor1 cursor for
+select TABLE_SCHEMA, TABLE_NAME from ejemplo1.INFORMATION_SCHEMA.TABLES
+order by TABLE_SCHEMA,TABLE_NAME
+
+open cursor1
+
+fetch next from cursor1 into @schemaName,@tableName
+while @@FETCH_STATUS=0
+begin
+	if exists (select TABLE_SCHEMA, TABLE_NAME from ejemplo2.INFORMATION_SCHEMA.TABLES 
+	where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName)
+		begin
+			print /*'coincidencia'*/  @schemaName+' '+@tableName+' se encuentra en las dos tablas'
+			declare cursor2 cursor for
+			select COLUMN_NAME,DATA_TYPE from ejemplo1.INFORMATION_SCHEMA.COLUMNS
+			where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName
+
+			open cursor2
+
+			fetch next from cursor2 into @columnName,@typeName
+			while @@FETCH_STATUS=0
+			begin
+				if exists (select COLUMN_NAME,DATA_TYPE from ejemplo2.INFORMATION_SCHEMA.COLUMNS
+				where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName and COLUMN_NAME=@columnName and DATA_TYPE=@typeName)
+						print/*'			coincide'*/ '			la columna '+@columnName+' coincide'
+					else
+						print '			la columna '+@columnName+' no coincide'
+					fetch next from cursor2 into @columnName,@typeName
+			end
+
+			close cursor2
+			deallocate cursor2
+
+		end
+			
+	else
+		print (@schemaName+' '+@tableName+' no se encuentra en la tabla destino')
+	fetch next from cursor1 into @schemaName,@tableName
+
+end
+
+close cursor1
+deallocate cursor1
