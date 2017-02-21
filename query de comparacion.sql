@@ -291,3 +291,193 @@ deallocate cursor3
 end
 else
 print 'no hay nada'
+
+
+--!!!!!!MUY IMPORTANTE¡¡¡¡¡¡¡
+----------------------------------------------------------------------------------------------
+--comparacion hecha procedimiento, se llama sin pasar parametros------------------------------
+----------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------
+
+
+use master
+go
+
+-- creacion del procedimiento
+
+create procedure compararBasesEjemplo
+as
+begin
+
+declare @sqlName nvarchar(max)
+set @sqlName=
+'declare @schemaName nvarchar(50)
+declare @tableName nvarchar(50)
+declare @columnName nvarchar(50)
+declare @typeName nvarchar(50)
+declare @nullName nvarchar(50)
+declare @defaulName nvarchar(50)
+
+declare cursor1 cursor for
+select TABLE_SCHEMA, TABLE_NAME from ejemplo1.INFORMATION_SCHEMA.TABLES
+order by TABLE_SCHEMA,TABLE_NAME
+
+open cursor1
+
+fetch next from cursor1 into @schemaName,@tableName
+while @@FETCH_STATUS=0
+begin
+	if exists (select TABLE_SCHEMA, TABLE_NAME from ejemplo2.INFORMATION_SCHEMA.TABLES 
+	where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName)
+		begin
+			print /*''coincidencia''*/  @schemaName+'' ''+@tableName+'' se encuentra en las dos tablas''
+			declare cursor2 cursor for
+			select COLUMN_NAME,DATA_TYPE from ejemplo1.INFORMATION_SCHEMA.COLUMNS
+			where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName
+
+			open cursor2
+
+			fetch next from cursor2 into @columnName,@typeName
+			while @@FETCH_STATUS=0
+			begin
+				if exists (select COLUMN_NAME,DATA_TYPE from ejemplo2.INFORMATION_SCHEMA.COLUMNS
+				where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName and COLUMN_NAME=@columnName and DATA_TYPE=@typeName)
+				begin
+						print/*''			coincide''*/ ''			la columna ''+@columnName+'' coincide''
+						if (select IS_NULLABLE from ejemplo1.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)=
+						(select IS_NULLABLE from ejemplo2.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
+						begin
+							set @nullName=(select IS_NULLABLE from ejemplo1.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
+							print''						el valor null ''+@nullname+'' es igual en ambas columnas''
+							
+						end
+						else
+						begin
+							set @nullName=(select IS_NULLABLE from ejemplo1.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
+							print''						el valor null ''+@nullname+'' es distinto en ambas columnas''
+						end
+						if (select COLUMN_DEFAULT from ejemplo1.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)is not null
+						if (select COLUMN_DEFAULT from ejemplo1.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)=
+						(select COLUMN_DEFAULT from ejemplo2.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
+						begin
+							set @defaulName=(select COLUMN_DEFAULT from ejemplo1.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
+							print''						el valor defaul ''+@defaulName+'' es igual en ambas columnas''
+							
+						end
+						else
+						begin
+							set @defaulName=(select COLUMN_DEFAULT from ejemplo1.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
+							print''						el valor default ''+@defaulName+'' es distinto en ambas columnas''
+						end
+						if exists (select CONSTRAINT_NAME from ejemplo1.INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+							where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
+							begin
+
+								declare @nombreTemporal nvarchar(50)
+								declare @tipoTemporal nvarchar(50)
+
+								declare cursor3 cursor for
+								select ejemplo1.INFORMATION_SCHEMA.KEY_COLUMN_USAGE.CONSTRAINT_NAME,
+								ejemplo1.INFORMATION_SCHEMA.TABLE_CONSTRAINTS.CONSTRAINT_TYPE
+								from ejemplo1.INFORMATION_SCHEMA.KEY_COLUMN_USAGE inner join
+								ejemplo1.INFORMATION_SCHEMA.TABLE_CONSTRAINTS on 
+								ejemplo1.INFORMATION_SCHEMA.KEY_COLUMN_USAGE.CONSTRAINT_NAME
+								=ejemplo1.INFORMATION_SCHEMA.TABLE_CONSTRAINTS.CONSTRAINT_NAME
+								where ejemplo1.INFORMATION_SCHEMA.KEY_COLUMN_USAGE.TABLE_NAME=@tableName
+								and ejemplo1.INFORMATION_SCHEMA.KEY_COLUMN_USAGE.COLUMN_NAME=@columnName
+
+								open cursor3
+
+								fetch next from cursor3 into @nombreTemporal,@tipoTemporal
+
+								while @@FETCH_STATUS=0
+								begin
+									if exists (select CONSTRAINT_NAME,CONSTRAINT_TYPE from 
+									ejemplo2.INFORMATION_SCHEMA.TABLE_CONSTRAINTS where CONSTRAINT_NAME=@nombreTemporal
+									and CONSTRAINT_TYPE=@tipoTemporal)
+									begin
+										print ''									''+@nombreTemporal+'' ''+@tipoTemporal+'' existe en las 2 bases''
+									end
+									else
+									begin
+									print  ''									''+@nombreTemporal+'' ''+@tipoTemporal+'' no existe en la base destino''
+									end
+									fetch next from cursor3 into @nombreTemporal,@tipoTemporal
+								end
+
+								close cursor3
+								deallocate cursor3
+								end
+						if exists (select ejemplo1.INFORMATION_SCHEMA.CHECK_CONSTRAINTS.CONSTRAINT_NAME 
+from ejemplo1.INFORMATION_SCHEMA.CHECK_CONSTRAINTS
+inner join ejemplo1.INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE on
+ejemplo1.INFORMATION_SCHEMA.CHECK_CONSTRAINTS.CONSTRAINT_NAME=
+ejemplo1.INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE.CONSTRAINT_NAME
+where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
+begin
+
+declare @nombreTemporal2 nvarchar(50)
+declare @clausulaTemporal nvarchar(50)
+
+declare cursor4 cursor for
+select ejemplo1.INFORMATION_SCHEMA.CHECK_CONSTRAINTS.CONSTRAINT_NAME,
+ejemplo1.INFORMATION_SCHEMA.CHECK_CONSTRAINTS.CHECK_CLAUSE
+from ejemplo1.INFORMATION_SCHEMA.CHECK_CONSTRAINTS inner join
+ejemplo1.information_schema.CONSTRAINT_COLUMN_USAGE on 
+ejemplo1.INFORMATION_SCHEMA.CHECK_CONSTRAINTS.CONSTRAINT_NAME
+=ejemplo1.information_schema.CONSTRAINT_COLUMN_USAGE.CONSTRAINT_NAME
+where ejemplo1.information_schema.CONSTRAINT_COLUMN_USAGE.TABLE_NAME=@tableName and
+ejemplo1.information_schema.CONSTRAINT_COLUMN_USAGE.COLUMN_NAME=@columnName
+
+open cursor4
+
+fetch next from cursor4 into @nombreTemporal2,@clausulaTemporal
+while @@FETCH_STATUS=0
+			begin
+			if exists (select CONSTRAINT_NAME from 
+			ejemplo2.INFORMATION_SCHEMA.CHECK_CONSTRAINTS
+			where CONSTRAINT_NAME=@nombreTemporal2 and CHECK_CLAUSE=@clausulaTemporal)
+			begin
+				print @nombreTemporal2+'' ''+@clausulaTemporal+'' existe en las 2 bases''
+			end
+			else
+			begin
+			print  @nombreTemporal2+'' ''+@clausulaTemporal+'' no existe en la base destino''
+			end
+				fetch next from cursor4 into @nombreTemporal2,@clausulaTemporal
+			end
+
+close cursor4
+deallocate cursor4
+end
+				end
+					else
+						print ''			la columna ''+@columnName+'' no coincide''
+					fetch next from cursor2 into @columnName,@typeName
+			end
+
+			close cursor2
+			deallocate cursor2
+
+		end
+			
+	else
+		print (@schemaName+'' ''+@tableName+'' no se encuentra en la tabla destino'')
+	fetch next from cursor1 into @schemaName,@tableName
+
+
+end
+close cursor1
+deallocate cursor1
+'
+exec sp_executesql @sqlName
+end
+
+
+--llamar el procedimiento
+
+exec compararBasesEjemplo
+
+--eliminar el procedimiento
+
+drop procedure compararBasesEjemplo
