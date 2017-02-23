@@ -1,8 +1,8 @@
 -- creamos la base que usaremos para guardar lo que nos arroje la comparacion --
 
-create database tp-final
+create database TpFinal
 
-use [tp-final]
+use [TpFinal]
 
 -- creamos la tabla donde guardaremos la descipcion del error/coincidencia y la fecha --
 
@@ -17,8 +17,7 @@ create procedure compararBasesEjemplo
 as
 begin
 
-declare @sqlName nvarchar(max)
-set @sqlName=
+exec(
 'declare @schemaName nvarchar(50)
 declare @tableName nvarchar(50)
 declare @columnName nvarchar(50)
@@ -52,29 +51,29 @@ begin
 				where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName and COLUMN_NAME=@columnName and DATA_TYPE=@typeName)
 				begin
 						insert into comparaciontablas(descripcion,fecha) values(''las  ''+@columnName+'' de las ''+@tablename+''coinciden'',getdate())
-						if (select IS_NULLABLE from ejemplo1.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)=
-						(select IS_NULLABLE from ejemplo2.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
+						if (select IS_NULLABLE from ejemplo1.information_schema.COLUMNS where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName and COLUMN_NAME=@columnName)=
+						(select IS_NULLABLE from ejemplo2.information_schema.COLUMNS where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
 						begin
-							set @nullName=(select IS_NULLABLE from ejemplo1.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
+							set @nullName=(select IS_NULLABLE from ejemplo1.information_schema.COLUMNS where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
 							insert into comparaciontablas(descripcion,fecha) values(''el valor ''+@nullname+'' es igual en ambas columnas de la ''+@tablename,getdate())
 							
 						end
 						else
 						begin
-							set @nullName=(select IS_NULLABLE from ejemplo1.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
+							set @nullName=(select IS_NULLABLE from ejemplo1.information_schema.COLUMNS where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
 							insert into comparaciontablas(descripcion,fecha) values(''el valor ''+@nullname+'' es distinto en ambas columnas de la ''+@tablename,getdate())
 						end
-						if (select COLUMN_DEFAULT from ejemplo1.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)is not null
-						if (select COLUMN_DEFAULT from ejemplo1.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)=
-						(select COLUMN_DEFAULT from ejemplo2.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
+						if (select COLUMN_DEFAULT from ejemplo1.information_schema.COLUMNS where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName and COLUMN_NAME=@columnName)is not null
+						if (select COLUMN_DEFAULT from ejemplo1.information_schema.COLUMNS where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName and COLUMN_NAME=@columnName)=
+						(select COLUMN_DEFAULT from ejemplo2.information_schema.COLUMNS where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
 						begin
-							set @defaulName=(select COLUMN_DEFAULT from ejemplo1.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
+							set @defaulName=(select COLUMN_DEFAULT from ejemplo1.information_schema.COLUMNS where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
 							insert into comparaciontablas(descripcion,fecha) values(''el valor ''+@defaulName+'' es igual en ambas columnas de la ''+@tablename,getdate())
 							
 						end
 						else
 						begin
-							set @defaulName=(select COLUMN_DEFAULT from ejemplo1.information_schema.COLUMNS where TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
+							set @defaulName=(select COLUMN_DEFAULT from ejemplo1.information_schema.COLUMNS where TABLE_SCHEMA=@schemaName and TABLE_NAME=@tableName and COLUMN_NAME=@columnName)
 							insert into comparaciontablas(descripcion,fecha) values(''el valor ''+@defaulName+'' es distinto en ambas columnas de la ''+@tablename,getdate())
 						end
 						if exists (select CONSTRAINT_NAME from ejemplo1.INFORMATION_SCHEMA.KEY_COLUMN_USAGE
@@ -177,14 +176,16 @@ end
 end
 close cursor1
 deallocate cursor1
-'
-exec sp_executesql @sqlName
+')
+
 end
 
 
 --llamar el procedimiento
 
 exec compararBasesEjemplo
+
+select * from dbo.comparaciontablas
 
 --eliminar el procedimiento
 
